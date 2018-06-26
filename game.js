@@ -9,12 +9,8 @@ let app = new Application(750, 1334, {
     autoStart: false,
     backgroundColor: 0x444444
 });
-// let renderer = PIXI.autoDetectRenderer(750, 1334, {
-//     backgroundColor: 0x444444
-// });
 
 document.querySelector("#pixi-game-container").appendChild(app.view);
-// document.querySelector("#pixi-game-container").appendChild(renderer.view);
 
 // Scale mode for all textures, will retain pixelation
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
@@ -29,6 +25,7 @@ let target = null;
 let throwingKnife = null;
 let canThrow = true;
 let isLegalHit = true;
+let hitKnifes = [];
 
 // ナイフと丸太の画像を初期位置にセット
 function setup() {
@@ -46,8 +43,6 @@ function setup() {
     throwingKnife.y = (app.screen.height / 5) * 4;
     throwingKnife.vy = -30;
 
-    // app.stage.addChild(target);
-    // app.stage.addChild(throwingKnife);
     stage.interactive = true;
 
     throwingKnife.interactive = true;
@@ -55,8 +50,8 @@ function setup() {
         canThrow = false;
     });
 
-    stage.addChild(target);
-    stage.addChild(throwingKnife);
+    stage.addChildAt(throwingKnife, 0);
+    stage.addChildAt(target, 1);
 
     app.stage.addChild(stage);
 
@@ -65,8 +60,6 @@ function setup() {
 
 function fallOut(delta) {
     if (throwingKnife.y >= (app.screen.height / 5) * 4) {
-        console.log(" koeta ");
-
         throwingKnife.y = (app.screen.height / 5) * 4;
         throwingKnife.rotation = 0;
 
@@ -77,15 +70,47 @@ function fallOut(delta) {
 
     throwingKnife.rotation += 0.2 * delta;
     throwingKnife.y += -throwingKnife.vy * 1.5 + delta;
+
+    resetGame();
+}
+
+function hitKnifeRotation(delta) {
+    hitKnifes.forEach(knife => {
+        knife.rotation += 0.04 * delta;
+        const rad = knife.rotation + (90 * Math.PI) / 180;
+        const x = (target.width / 2) * 0.7 * Math.cos(rad) + target.x;
+        const y = (target.width / 2) * 0.7 * Math.sin(rad) + target.y;
+        knife.x = x;
+        knife.y = y;
+    });
 }
 
 function hit() {
-    console.log(" call hit target ");
-    // TODO: knifeにhitしたら、addChild?したオブジェクトをdestroyすればいいのか、、
-    let hit = false;
+    const currentDeg = (target.rotation * (180 / Math.PI)) % 360;
+    console.log(`current deg : ${currentDeg}`);
+    for (let i = 0; i < hitKnifes.length; i += 1) {
+        const knife = hitKnifes[i];
+        const diff = currentDeg - knife.impactAngle;
+        console.log(`差分：： ${Math.abs(diff)}`);
+        if (Math.abs(diff) < 5) {
+            console.log("OUT!!!!");
+            isLegalHit = false;
+            return false;
+        }
+    }
 
-    // TODO: fallOut
-    isLegalHit = false;
+    // Add knife
+    const knife = new Sprite(resources["knife.png"].texture);
+    knife.anchor.set(0, 0);
+    knife.x = throwingKnife.x;
+    knife.y = throwingKnife.y - 150;
+
+    knife.impactAngle = currentDeg;
+
+    hitKnifes.push(knife);
+    stage.addChildAt(knife, 0);
+
+    isLegalHit = true;
     return true;
 }
 
@@ -93,38 +118,40 @@ function thrownKnife(delta) {
     if (canThrow) {
         return;
     }
-    // TODO: このyの位置は固定でいいかも
+
     if (throwingKnife.y >= 500 + target.height / 2) {
         throwingKnife.y += throwingKnife.vy + delta;
         return;
     }
-    console.log(" knife hit target ?? ");
 
-    // hitしたかどうかのチェック
     // check for a collision between the throw knife and target
-    if (hit()) {
-        console.log(" target に 当たったのかナイフに当たったのか");
+    if (!hit()) {
+        console.log(" GAME OVER ");
         return;
     }
 
     // knifeの位置を戻す
     canThrow = true;
     throwingKnife.y = (app.screen.height / 5) * 4;
-
-    // app.stop();
 }
 
 function gameLoop(delta) {
-    // target.rotation += 0.1 * delta;
     target.rotation += 0.04 * delta;
 
-    // throwing knife
-    // TODO: targetの下限まで到達したら止める
     thrownKnife(delta);
 
     if (!isLegalHit) {
         fallOut(delta);
     }
+
+    hitKnifeRotation(delta);
+}
+
+function resetGame() {
+    hitKnifes.forEach(knife => {
+        stage.removeChild(knife);
+    });
+    hitKnifes = [];
 }
 
 // Listen for animate update
