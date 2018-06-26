@@ -7,7 +7,8 @@ const Sprite = PIXI.Sprite;
 // Create a Pixi Application
 let app = new Application(750, 1334, {
     autoStart: false,
-    backgroundColor: 0x444444
+    backgroundColor: 0x444444,
+    resolution: 0.6
 });
 
 document.querySelector("#pixi-game-container").appendChild(app.view);
@@ -18,8 +19,13 @@ PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 // create the root of the scene graph
 const stage = new PIXI.Container();
 
+const images = {
+    knife: "knife.png",
+    target: "target.png"
+};
+
 // load images
-loader.add(["knife.png", "target.png"]).load(setup);
+loader.add([images.knife, images.target]).load(setup);
 
 let target = null;
 let throwingKnife = null;
@@ -31,13 +37,13 @@ let hitKnifes = [];
 function setup() {
     console.log(" load image complete ");
     // create the target sprite
-    target = new Sprite(resources["target.png"].texture);
+    target = new Sprite(resources[images.target].texture);
     target.anchor.set(0.5);
     target.x = app.screen.width / 2;
     // target.y = app.screen.height / 2;
     target.y = 400;
 
-    throwingKnife = new Sprite(resources["knife.png"].texture);
+    throwingKnife = new Sprite(resources[images.knife].texture);
     throwingKnife.anchor.set(0, 0.5);
     throwingKnife.x = app.screen.width / 2;
     throwingKnife.y = (app.screen.height / 5) * 4;
@@ -100,7 +106,7 @@ function hit() {
     }
 
     // Add knife
-    const knife = new Sprite(resources["knife.png"].texture);
+    const knife = new Sprite(resources[images.knife].texture);
     knife.anchor.set(0, 0);
     knife.x = throwingKnife.x;
     knife.y = throwingKnife.y - 150;
